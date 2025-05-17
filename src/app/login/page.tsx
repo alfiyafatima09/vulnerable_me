@@ -28,7 +28,7 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        router.push('/profile')
+        router.push('/')
       } else {
         setError(data.message || 'Login failed')
       }
