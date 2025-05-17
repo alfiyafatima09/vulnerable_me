@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 
 interface Product {
@@ -17,25 +18,12 @@ export default function SearchPage() {
   const [category, setCategory] = useState('')
   const [products, setProducts] = useState<Product[]>([])
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const categoryParam = params.get('category')
-    if (categoryParam) {
-      setCategory(categoryParam)
-      handleSearch('', categoryParam)
-    }
-  }, [])
-
-  const handleSearch = async (term: string = searchTerm, cat: string = category) => {
-    setLoading(true)
-    setError('')
-
+  const handleSearch = useCallback(async () => {
     try {
       // Intentionally vulnerable: No input sanitization
       const response = await fetch(
-        `/api/search?term=${encodeURIComponent(term)}&category=${encodeURIComponent(cat)}`
+        `/api/search?term=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category)}`
       )
       const data = await response.json()
 
@@ -44,126 +32,87 @@ export default function SearchPage() {
       } else {
         setError(data.message || 'Search failed')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred during search')
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [searchTerm, category])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
     handleSearch()
-  }
+  }, [handleSearch])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">TechStore</h1>
-            <nav className="flex items-center space-x-4">
-              <a href="/" className="text-gray-600 hover:text-gray-900">Home</a>
-              <a href="/login" className="text-gray-600 hover:text-gray-900">Login</a>
-              <a href="/profile" className="text-gray-600 hover:text-gray-900">My Account</a>
-            </nav>
+    <main className="min-h-screen p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Search Products</h1>
+          <Link
+            href="/"
+            className="text-blue-500 hover:text-blue-600"
+          >
+            Back to Home
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium mb-1">
+              Search Term
+            </label>
+            <input
+              type="text"
+              id="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="Enter search term"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium mb-1">
+              Category
+            </label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">All Categories</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Computers">Computers</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Gaming">Gaming</option>
+            </select>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h2 className="text-lg font-semibold mb-4">Filters</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      setCategory(e.target.value)
-                      handleSearch(searchTerm, e.target.value)
-                    }}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">All Categories</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Computers">Computers</option>
-                    <option value="Accessories">Accessories</option>
-                    <option value="Gaming">Gaming</option>
-                  </select>
-                </div>
+        {error && (
+          <div className="text-red-500 text-sm mb-4">{error}</div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div key={product.id} className="border rounded-lg overflow-hidden">
+              <div className="relative h-48">
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                <p className="text-gray-600 mb-2">{product.description}</p>
+                <p className="text-blue-500 font-semibold">${product.price}</p>
+                <p className="text-sm text-gray-500 mt-2">{product.category}</p>
               </div>
             </div>
-          </div>
-
-          {/* Search Results */}
-          <div className="flex-1">
-            <form onSubmit={handleSubmit} className="mb-6">
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 p-2 border rounded"
-                  placeholder="Search products..."
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                >
-                  Search
-                </button>
-              </div>
-            </form>
-
-            {error && (
-              <div className="text-red-500 mb-4">{error}</div>
-            )}
-
-            {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : products.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div className="relative h-48">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 mb-2">{product.category}</p>
-                      <p className="text-xl font-bold text-blue-600 mb-2">
-                        ${product.price.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-4">{product.description}</p>
-                      <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No products found
-              </div>
-            )}
-          </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 } 

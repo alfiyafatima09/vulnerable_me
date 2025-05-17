@@ -2,17 +2,11 @@
 
 import { useState, useEffect } from 'react'
 
-interface Profile {
-  name: string
-  email: string
-  bio: string
-}
-
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile>({
+  const [profile, setProfile] = useState({
     name: '',
     email: '',
-    bio: ''
+    address: ''
   })
   const [error, setError] = useState('')
 
@@ -30,7 +24,7 @@ export default function ProfilePage() {
       } else {
         setError(data.message || 'Failed to fetch profile')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while fetching profile')
     }
   }
@@ -40,8 +34,9 @@ export default function ProfilePage() {
     setError('')
 
     try {
+      // Intentionally vulnerable: No input sanitization
       const response = await fetch('/api/profile', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -51,18 +46,18 @@ export default function ProfilePage() {
       const data = await response.json()
 
       if (response.ok) {
-        setProfile(data)
+        alert('Profile updated successfully')
       } else {
         setError(data.message || 'Failed to update profile')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while updating profile')
     }
   }
 
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-md mx-auto">
         <h1 className="text-3xl font-bold mb-6">Profile</h1>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,6 +71,7 @@ export default function ProfilePage() {
               value={profile.name}
               onChange={(e) => setProfile({ ...profile, name: e.target.value })}
               className="w-full p-2 border rounded"
+              placeholder="Enter your name"
             />
           </div>
 
@@ -84,24 +80,26 @@ export default function ProfilePage() {
               Email
             </label>
             <input
-              type="email"
+              type="text"
               id="email"
               value={profile.email}
               onChange={(e) => setProfile({ ...profile, email: e.target.value })}
               className="w-full p-2 border rounded"
+              placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium mb-1">
-              Bio
+            <label htmlFor="address" className="block text-sm font-medium mb-1">
+              Address
             </label>
             <textarea
-              id="bio"
-              value={profile.bio}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+              id="address"
+              value={profile.address}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
               className="w-full p-2 border rounded"
-              rows={4}
+              placeholder="Enter your address"
+              rows={3}
             />
           </div>
 
@@ -116,12 +114,6 @@ export default function ProfilePage() {
             Update Profile
           </button>
         </form>
-
-        {/* Intentionally vulnerable: Directly rendering user input without sanitization */}
-        <div className="mt-8 p-4 bg-gray-50 rounded">
-          <h2 className="text-xl font-semibold mb-2">Preview</h2>
-          <div dangerouslySetInnerHTML={{ __html: profile.bio }} />
-        </div>
       </div>
     </main>
   )
